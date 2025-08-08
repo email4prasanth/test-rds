@@ -238,7 +238,7 @@ name: Deploy hubino backend Infrastructure to development environment
 on:
   push:
     branches:
-      - develop-sls-dbconnect
+      - develop
       
 permissions:
   contents: read
