@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - develop
-      
 permissions:
   contents: read
   id-token: write
@@ -68,21 +67,21 @@ jobs:
           echo "Subnet id: $SUBNET_IDS"
           echo "SUBNET_IDS=$SUBNET_IDS" >> db_outputs.env
 
-      # Get and parse RDS endpoint seperate endpoint and port
+      # Get and parse RDS endpoint seperate endpoint & port
       - name: Get and Parse RDS Endpoint
         id: set-db-outputs
         run: |
           DB_ENDPOINT_FULL=$(terraform output -raw rds_endpoint)
           echo "Full RDS Endpoint: $DB_ENDPOINT_FULL"
-          
+
           # Extract host and port
           DB_HOST=$(echo "$DB_ENDPOINT_FULL" | cut -d ':' -f 1)
           DB_PORT=$(echo "$DB_ENDPOINT_FULL" | cut -d ':' -f 2)
-          
+
           # Create outputs file in the working directory
           echo "DB_HOST=$DB_HOST" >> db_outputs.env
           echo "DB_PORT=$DB_PORT" >> db_outputs.env
-          
+
           # Mask values in logs
           echo "::add-mask::$DB_HOST"
           echo "::add-mask::$DB_PORT"
@@ -91,7 +90,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: db-env-vars
-          path: backend-infra/db_outputs.env  # Correct path to file
+          path: backend-infra/db_outputs.env # Correct path to file
 
   deploy-serverless:
     needs: aws-resources-deploy
@@ -121,7 +120,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
 
       - name: Verify pg package
         run: |
@@ -170,21 +168,21 @@ jobs:
       - name: Retrieve Secrets from AWS Secrets Manager
         id: get-secrets
         run: |
-          SECRET_NAME="$ENVIRONMENT-hubino-rds_credentials-backend-v5"
+          SECRET_NAME="$ENVIRONMENT-hubino-rds-credentials-be"
           echo "Retrieving secrets from: $SECRET_NAME"
           SECRET_ARN=$(aws secretsmanager describe-secret --secret-id $SECRET_NAME --query ARN --output text)
           echo "Secret ARN: $SECRET_ARN"
-          
+
           # Retrieve secret value
           SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id $SECRET_NAME --query SecretString --output text)
           echo "Raw secret value retrieved"
           echo "$SECRET_VALUE" > secret.json
-          
+
           # Parse values
           DB_NAME=$(jq -r '.db_name' secret.json)
           DB_USER=$(jq -r '.db_user' secret.json)
           DB_PASSWORD=$(jq -r '.db_password' secret.json)
-          
+
           # Log non-sensitive values
           echo "DB_NAME: $DB_NAME"
           echo "DB_USER: $DB_USER"
@@ -198,9 +196,6 @@ jobs:
           echo "JWT_SECRET=$JWT_SECRET" >> $GITHUB_ENV
           echo "PG_ENCRYPT_SECRET=$PG_ENCRYPT_SECRET" >> $GITHUB_ENV
 
-          # echo "LAMBDA_SG_ID=$LAMBDA_SG_ID" >> $GITHUB_ENV
-          # echo "SUBNET_IDS=$SUBNET_IDS" >> $GITHUB_ENV
-
       - name: Create env.yml
         run: |
           cat <<EOF > env.yml
@@ -210,6 +205,10 @@ jobs:
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
             DB_PORT: ${{ env.DB_PORT }}
+
+            SLS_AWS_ACCESS_KEY_ID: ${{ secrets.SLS_AWS_ACCESS_KEY_ID }}
+            SLS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SLS_AWS_SECRET_ACCESS_KEY }}
+            AWS_REGION: ${{ secrets.AWS_REGION }}
             
             JWT_SECRET: ${{ secrets.JWT_SECRET }}
             PG_ENCRYPT_SECRET: ${{ secrets.PG_ENCRYPT_SECRET }}
@@ -219,9 +218,8 @@ jobs:
 
             LAMBDA_SG_ID: $LAMBDA_SG_ID
             SUBNET_IDS: $SUBNET_IDS
-
           EOF
-          
+
           # Show non-sensitive parts of env.yml
           echo "env.yml contents (redacted):"
           grep -v -E 'DB_PASSWORD|JWT_SECRET|PG_ENCRYPT_SECRET' env.yml
@@ -275,39 +273,60 @@ jobs:
 #       - name: Install Serverless Framework
 #         run: npm install -g serverless@4.0.0
 
-#       - name: Retrieve Secrets from AWS Secrets Manager
-#         id: get-secrets
-#         run: |
-#           SECRET_NAME="$ENVIRONMENT-hubino-rds_credentials-backend-v5"
-#           SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id $SECRET_NAME --query SecretString --output text)
-#           echo "$SECRET_VALUE" > secret.json
-#           DB_NAME=$(jq -r '.db_name' secret.json)
-#           DB_USER=$(jq -r '.db_user' secret.json)
-#           DB_PASSWORD=$(jq -r '.db_password' secret.json)
-#           echo "DB_NAME=$DB_NAME" >> $GITHUB_ENV
-#           echo "DB_USER=$DB_USER" >> $GITHUB_ENV
-#           echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+      # - name: Retrieve Secrets from AWS Secrets Manager
+      #   id: get-secrets
+      #   run: |
+      #     SECRET_NAME="$ENVIRONMENT-hubino-rds-credentials-be"
+      #     echo "Retrieving secrets from: $SECRET_NAME"
+      #     SECRET_ARN=$(aws secretsmanager describe-secret --secret-id $SECRET_NAME --query ARN --output text)
+      #     echo "Secret ARN: $SECRET_ARN"
 
-#       # Create minimal env.yml needed for destruction
-#       - name: Create destruction env.yml
-#         run: |
-#           cat <<EOF > env.yml
-#           $ENVIRONMENT:
-#             DB_HOST: "dev-hubino-db.cxkiky6us81t.us-east-1.rds.amazonaws.com"  # Needed but not used in destruction
-#             DB_NAME: ${{ env.DB_NAME }}
-#             DB_USER: ${{ env.DB_USER }}
-#             DB_PASSWORD: ${{ env.DB_PASSWORD }}
-#             DB_PORT: 5432
+      #     # Retrieve secret value
+      #     SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id $SECRET_NAME --query SecretString --output text)
+      #     echo "Raw secret value retrieved"
+      #     echo "$SECRET_VALUE" > secret.json
+
+      #     # Parse values
+      #     DB_NAME=$(jq -r '.db_name' secret.json)
+      #     DB_USER=$(jq -r '.db_user' secret.json)
+      #     DB_PASSWORD=$(jq -r '.db_password' secret.json)
+
+      #     # Log non-sensitive values
+      #     echo "DB_NAME: $DB_NAME"
+      #     echo "DB_USER: $DB_USER"
+      #     echo "DB_PORT: $DB_PORT"
+
+      #     # Set environment variables
+      #     echo "DB_NAME=$DB_NAME" >> $GITHUB_ENV
+      #     echo "DB_USER=$DB_USER" >> $GITHUB_ENV
+      #     echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+      #     echo "DB_PORT=$DB_PORT" >> $GITHUB_ENV
+      #     echo "JWT_SECRET=$JWT_SECRET" >> $GITHUB_ENV
+      #     echo "PG_ENCRYPT_SECRET=$PG_ENCRYPT_SECRET" >> $GITHUB_ENV
+
+      # - name: Create env.yml
+      #   run: |
+      #     cat <<EOF > env.yml
+      #     $ENVIRONMENT:
+      #       DB_HOST: ${{ env.DB_HOST }}
+      #       DB_NAME: ${{ env.DB_NAME }}
+      #       DB_USER: ${{ env.DB_USER }}
+      #       DB_PASSWORD: ${{ env.DB_PASSWORD }}
+      #       DB_PORT: ${{ env.DB_PORT }}
+
+      #       SLS_AWS_ACCESS_KEY_ID: ${{ secrets.SLS_AWS_ACCESS_KEY_ID }}
+      #       SLS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SLS_AWS_SECRET_ACCESS_KEY }}
+      #       AWS_REGION: ${{ secrets.AWS_REGION }}
             
-#             JWT_SECRET: ${{ secrets.JWT_SECRET }}
-#             PG_ENCRYPT_SECRET: ${{ secrets.PG_ENCRYPT_SECRET }}
-#             AWS_SES_SENDER_EMAIL: ${{ secrets.AWS_SES_SENDER_EMAIL }}
-#             FE_APP_URL: ${{ secrets.FE_APP_URL }}
-#             API_ROOT_PATH: ${API_ROOT_PATH}
+      #       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      #       PG_ENCRYPT_SECRET: ${{ secrets.PG_ENCRYPT_SECRET }}
+      #       AWS_SES_SENDER_EMAIL: ${{ secrets.AWS_SES_SENDER_EMAIL }}
+      #       FE_APP_URL: ${{ secrets.FE_APP_URL }}
+      #       API_ROOT_PATH: ${API_ROOT_PATH}
 
-#             LAMBDA_SG_ID: sg-079fbe15d433c86df
-#             SUBNET_IDS: "subnet-07141152f298fa7af,subnet-0a4ef2d8d1eb7b5af"
-#           EOF
+      #       LAMBDA_SG_ID: $LAMBDA_SG_ID
+      #       SUBNET_IDS: $SUBNET_IDS
+      #     EOF
 
 #       - name: Destroy Serverless App
 #         run: |
