@@ -41,8 +41,16 @@ resource "aws_security_group" "rds" {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    cidr_blocks     = ["0.0.0.0/0"]
+    # cidr_blocks     = ["0.0.0.0/0"]
     security_groups = [aws_security_group.lambda_sg.id]
+  }
+
+  ingress {
+    description     = "Allow PostgreSQL from my IP"  # Add your IP here
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    cidr_blocks     = ["117.213.147.119/32"]  # e.g., "123.45.67.89/32"
   }
 
   egress {
