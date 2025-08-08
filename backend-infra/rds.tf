@@ -46,7 +46,7 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.public_db.name
   # publicly_accessible    = true
-  publicly_accessible = false
+  publicly_accessible = false 
   apply_immediately      = true
   tags                   = local.tags
   depends_on = [
