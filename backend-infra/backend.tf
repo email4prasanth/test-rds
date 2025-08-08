@@ -4,6 +4,6 @@ terraform {
     bucket  = "testrdshubinotfstore"
     key     = "backend/terraform.tfstate"
     region  = "us-east-1"
-    profile = "prasanth_rds_test"
+    # profile = "prasanth_rds_test"
   }
 }

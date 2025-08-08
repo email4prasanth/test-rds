@@ -13,5 +13,5 @@ terraform {
 # AWS Provider Configuration
 provider "aws" {
   region  = local.aws_region
-  profile = "prasanth_rds_test"
+  # profile = "prasanth_rds_test"
 }
