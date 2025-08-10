@@ -325,8 +325,8 @@ jobs:
             FE_APP_URL: ${{ secrets.FE_APP_URL }}
             API_ROOT_PATH: ${API_ROOT_PATH}
 
-            LAMBDA_SG_ID: $LAMBDA_SG_ID
-            SUBNET_IDS: $SUBNET_IDS
+            LAMBDA_SG_ID: sg-0d98855b477e3013b
+            SUBNET_IDS: subnet-0479ab65bd41c22a0, subnet-00089fa153ebb970a
           EOF
 
       - name: Destroy Serverless App
