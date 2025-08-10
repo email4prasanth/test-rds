@@ -273,6 +273,25 @@ jobs:
       - name: Install Serverless Framework
         run: npm install -g serverless@4.0.0
 
+      # Get and parse RDS endpoint seperate endpoint & port
+      - name: Get and Parse RDS Endpoint
+        id: set-db-outputs
+        run: |
+          DB_ENDPOINT_FULL=$(terraform output -raw rds_endpoint)
+          echo "Full RDS Endpoint: $DB_ENDPOINT_FULL"
+
+          # Extract host and port
+          DB_HOST=$(echo "$DB_ENDPOINT_FULL" | cut -d ':' -f 1)
+          DB_PORT=$(echo "$DB_ENDPOINT_FULL" | cut -d ':' -f 2)
+
+          # Create outputs file in the working directory
+          echo "DB_HOST=$DB_HOST" >> db_outputs.env
+          echo "DB_PORT=$DB_PORT" >> db_outputs.env
+
+          # Mask values in logs
+          echo "::add-mask::$DB_HOST"
+          echo "::add-mask::$DB_PORT"
+
       - name: Retrieve Secrets from AWS Secrets Manager
         id: get-secrets
         run: |
